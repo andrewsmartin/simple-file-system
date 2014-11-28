@@ -12,6 +12,8 @@ FreeBlockList *fbl_create(uint32_t num_blocks);
 
 uint32_t fbl_get_free_index(FreeBlockList *fblist);
 
+uint32_t fbl_get_num_free(FreeBlockList *fblist);
+
 void fbl_set_next_used(FreeBlockList *fblist);
 
 byte *fbl_get_raw(FreeBlockList *fblist);

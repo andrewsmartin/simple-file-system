@@ -33,7 +33,6 @@ int bf_set_all_bits(BitField *b_field, int val)
         return -1;*/
 
     byte byte_val = int2byte(val);
-
     int i;
     for (i = 0; i < b_field->num_bytes; i++) {
         b_field->bits[i] = byte_val;
@@ -75,6 +74,23 @@ uint32_t bf_locate_first(BitField *b_field, int val)
     }
 
     return -1;
+}
+
+uint32_t bf_num_zero_bits(BitField *b_field)
+{
+    uint32_t count = 0, i;
+    for (i = 0; i < b_field->num_bytes; i++) {
+        byte curr_byte = b_field->bits[i];
+        int j;
+        for (j = 0; j < 8; j++) {
+            curr_byte = curr_byte >> 1;
+            byte chk = curr_byte & 1;
+            if (chk == 1)
+                count++;
+        }
+    }
+
+    return count;
 }
 
 int bf_set_bit(BitField *b_field, uint32_t index, int val)

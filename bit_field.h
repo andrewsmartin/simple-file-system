@@ -17,6 +17,8 @@ void bf_set_raw_bytes(BitField *b_field, byte *bytes);
 
 uint32_t bf_locate_first(BitField *b_field, int val);
 
+uint32_t bf_num_zero_bits(BitField *b_field);
+
 int bf_set_bit(BitField *b_field, uint32_t index, int val);
 
 void bf_destroy(BitField *b_field);

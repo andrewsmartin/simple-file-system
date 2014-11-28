@@ -73,6 +73,8 @@ typedef struct
     FilePtr read_ptr, write_ptr;    
 } FileDescriptor;
 
+static void flush_caches();
+
 static void load_all_caches();
 static void load_directory_from_buf(byte *buf);
 static void load_fat_from_buf(byte *buf);
@@ -106,7 +108,7 @@ void mksfs(int fresh)
     init_caches();
     if (fresh) {
         init_fresh_disk(DISK_FILE, BLOCK_SIZE, NUM_BLOCKS);
-        write_all_caches();
+        flush_caches();
     }
     else {
         init_disk(DISK_FILE, BLOCK_SIZE, NUM_BLOCKS);
@@ -185,9 +187,9 @@ void sfs_fwrite(int fileID, char *buf, int length)
         printf("Error: no open file with id [%d].\n", fileID);
         return;
     }
-
+    int bytes_written = 0;
     byte *ptr = (byte*) buf;
-    uint16_t last_fat_index = f->fat_root;
+    uint16_t last_fat_index;
     // If write pointer is in the middle of a block, fill up
     // the block first.
     if (f->write_ptr.byte_address > 0) {
@@ -201,6 +203,7 @@ void sfs_fwrite(int fileID, char *buf, int length)
         last_fat_index = f->write_ptr.block_address;
         f->write_ptr.block_address = fat_table[f->write_ptr.block_address]->next;
         length -= fill;
+        bytes_written += fill;
     }
 
     // Figure out how many blocks need to be allocated to complete the write.
@@ -221,6 +224,7 @@ void sfs_fwrite(int fileID, char *buf, int length)
     }
 
     // Now write the rest of the buffer.
+    last_fat_index = f->write_ptr.block_address;
     f->write_ptr.block_address = fat_table[f->write_ptr.block_address]->next;
     for (i = 0; i < num_blocks - not_alloc; i++, ptr += BLOCK_SIZE) {
         if (f->write_ptr.block_address == END_OF_FILE) {
@@ -233,7 +237,11 @@ void sfs_fwrite(int fileID, char *buf, int length)
         memcpy(buffer, ptr, to_write);
         write_blocks(f->write_ptr.block_address, 1, buffer);
         f->write_ptr.byte_address = (f->write_ptr.byte_address + to_write) % BLOCK_SIZE;
+        f->write_ptr.block_address = fat_table[f->write_ptr.block_address]->next;
+        bytes_written += to_write;
     }
+
+    // Somehow update the file size (i.e. the directory entry)
 }
 
 void sfs_fread(int fileID, char *buf, int length)
@@ -347,7 +355,7 @@ int create_file(char *name)
     new_file->size = 0;
     new_file->fat_index = fat_index;
     directory[i] = new_file;
-    write_all_caches();
+    flush_caches();
     return fat_index;
 cleanupFatEntry:
     free(fat);
@@ -380,6 +388,17 @@ int alloc_blocks(uint16_t fat_index, int num_blocks)
     }
 
     return 0;
+exit:
+    flush_caches();
+    return num_blocks - i;
+}
+
+/* An important function. When called, the cached super block, directory
+   FAT and free block list are synchronized and flushed to disk. */
+void flush_caches()
+{
+    super_block.num_free_blocks = fbl_get_num_free(free_block_list);
+    write_all_caches();
 }
 
 void load_all_caches()

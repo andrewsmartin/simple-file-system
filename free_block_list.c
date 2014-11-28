@@ -22,6 +22,11 @@ uint32_t fbl_get_free_index(FreeBlockList *fblist)
     return bf_locate_first(fblist->bfield, 0);
 }
 
+uint32_t fbl_get_num_free(FreeBlockList *fblist)
+{
+    return bf_num_zero_bits(fblist->bfield);
+}
+
 void fbl_set_next_used(FreeBlockList *fblist)
 {
     bf_set_bit(fblist->bfield, fbl_get_free_index(fblist), 1);
