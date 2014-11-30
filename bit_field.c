@@ -12,8 +12,6 @@ struct _BitField
     byte* bits;
 };
 
-static byte int2byte(int val);
-
 BitField *bf_create(uint32_t num_bits)
 {
     BitField *ret = malloc(sizeof(BitField));
@@ -24,18 +22,10 @@ BitField *bf_create(uint32_t num_bits)
 
 int bf_set_all_bits(BitField *b_field, int val)
 {
-    /*byte byte_val;
-    if (val == 0) 
-        byte_val = 0;
-    else if (val == 1)
-        byte_val = 255;
-    else
-        return -1;*/
-
-    byte byte_val = int2byte(val);
+    val = (val == 1 ? 255 : 0);
     int i;
     for (i = 0; i < b_field->num_bytes; i++) {
-        b_field->bits[i] = byte_val;
+        b_field->bits[i] = val;
     }
 
     return 0;
@@ -53,22 +43,12 @@ void bf_set_raw_bytes(BitField *b_field, byte *bytes)
 
 uint32_t bf_locate_first(BitField *b_field, int val)
 {
-    /*byte byte_val;
-    if (val == 0) 
-        byte_val = 0;
-    else if (val == 1)
-        byte_val = 255;
-    else
-        return -1;*/
-    byte byte_val = int2byte(val);
-
     int i;
     for (i = 0; i < b_field->num_bytes; i++) {
         int j;
-        byte curr_byte = b_field->bits[i];
         for (j = 7; j >= 0; j--) {
-            byte chk = (curr_byte >> j) & 1;
-            if (chk == byte_val)
+            byte chk = ((b_field->bits[i]) & (1 << j)) >> j;
+            if (chk == val)
                 return i * 8 + (7 - j);
         }
     }
@@ -76,15 +56,13 @@ uint32_t bf_locate_first(BitField *b_field, int val)
     return -1;
 }
 
-uint32_t bf_num_zero_bits(BitField *b_field)
+uint32_t bf_num_one_bits(BitField *b_field)
 {
     uint32_t count = 0, i;
     for (i = 0; i < b_field->num_bytes; i++) {
-        byte curr_byte = b_field->bits[i];
         int j;
         for (j = 0; j < 8; j++) {
-            curr_byte = curr_byte >> 1;
-            byte chk = curr_byte & 1;
+            byte chk = ((b_field->bits[i]) & (1 << j)) >> j;
             if (chk == 1)
                 count++;
         }
@@ -97,8 +75,8 @@ int bf_set_bit(BitField *b_field, uint32_t index, int val)
 {
     if (index >= b_field->num_bytes * 8)
         return -1;
-    byte byte_val = int2byte(val);
-    b_field->bits[index] = byte_val;
+    val = (val == 1 ? 255 : 0);
+    b_field->bits[index] = val;
     return 0;
 }
 
@@ -118,10 +96,4 @@ void bf_print_hex(BitField *b_field)
         sprintf(buf + 2, "%02x", b_field->bits[i + 1]);
         printf("%s%c", buf, ((i + 2) % 16 == 0) ? '\n' : ' ');
     }
-}
-
-/*** Private helper methods. ***/
-byte int2byte(int val)
-{
-    return val >= 255 ? 255 : (byte)val;
 }

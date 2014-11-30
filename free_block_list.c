@@ -13,23 +13,24 @@ FreeBlockList *fbl_create(uint32_t num_blocks)
 {
     FreeBlockList *ret = malloc(sizeof(FreeBlockList));
     ret->bfield = bf_create(num_blocks);
-    bf_set_all_bits(ret->bfield, 0);
+    bf_set_all_bits(ret->bfield, 1);
     return ret;
 }
 
-uint32_t fbl_get_free_index(FreeBlockList *fblist)
+int fbl_get_free_index(FreeBlockList *fblist)
 {
-    return bf_locate_first(fblist->bfield, 0);
+    uint32_t ret = bf_locate_first(fblist->bfield, 1);
+    bf_set_bit(fblist->bfield, ret, 0);
+    return ret;
+}
+
+void fbl_set_free_index(FreeBlockList *fblist, uint32_t index) {
+    bf_set_bit(fblist->bfield, index, 1);
 }
 
 uint32_t fbl_get_num_free(FreeBlockList *fblist)
 {
-    return bf_num_zero_bits(fblist->bfield);
-}
-
-void fbl_set_next_used(FreeBlockList *fblist)
-{
-    bf_set_bit(fblist->bfield, fbl_get_free_index(fblist), 1);
+    return bf_num_one_bits(fblist->bfield);
 }
 
 byte *fbl_get_raw(FreeBlockList *fblist)
