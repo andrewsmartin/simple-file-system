@@ -4,10 +4,7 @@
 
 #include "sfs_api.h"
 
-int main(int argc, char *argv[])
-{
-    int i = strtol(argv[1], NULL, 10);
-    char *buf = "Some text for the file. ASDALSKFJHSDFJKLSDKFJSDFH SDF\
+char *buf = "Some text for the file. ASDALSKFJHSDFJKLSDKFJSDFH SDF\
         SDFSDJFHSDKJFLSDKFJHSDFJDSKLFKSDJFHDJKLSKJDFHDJSKFLSKDJFHD\
         SDFSDFHSDFJKLSDKFJSDFHDSJKFLSDKFJHDSFJKSLDFKJSDHFSJDKFLSDKJFHDS\
         SDFKJSDHFJDSKLFSDKJFHDSJFKLSDKJFHDJKLSDKJFHDJKFLSDKJFHDJSKLDF\
@@ -15,6 +12,11 @@ int main(int argc, char *argv[])
         DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD\
         DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD\
         DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD";
+
+int main(int argc, char *argv[])
+{
+    int i = strtol(argv[1], NULL, 10);
+    
     if (i == 1) {
         mksfs(i);
         int fileID = sfs_fopen("test1.txt");

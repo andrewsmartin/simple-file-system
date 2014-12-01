@@ -20,12 +20,12 @@ FreeBlockList *fbl_create(uint32_t num_blocks)
 int fbl_get_free_index(FreeBlockList *fblist)
 {
     uint32_t ret = bf_locate_first(fblist->bfield, 1);
-    bf_set_bit(fblist->bfield, ret, 0);
+    bf_flip_bit(fblist->bfield, ret);
     return ret;
 }
 
 void fbl_set_free_index(FreeBlockList *fblist, uint32_t index) {
-    bf_set_bit(fblist->bfield, index, 1);
+    bf_flip_bit(fblist->bfield, index);
 }
 
 uint32_t fbl_get_num_free(FreeBlockList *fblist)

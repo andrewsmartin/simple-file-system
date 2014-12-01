@@ -46,10 +46,10 @@ uint32_t bf_locate_first(BitField *b_field, int val)
     int i;
     for (i = 0; i < b_field->num_bytes; i++) {
         int j;
-        for (j = 7; j >= 0; j--) {
+        for (j = 0; j < 8; j++) {
             byte chk = ((b_field->bits[i]) & (1 << j)) >> j;
             if (chk == val)
-                return i * 8 + (7 - j);
+                return i * 8 + j;
         }
     }
 
@@ -71,12 +71,11 @@ uint32_t bf_num_one_bits(BitField *b_field)
     return count;
 }
 
-int bf_set_bit(BitField *b_field, uint32_t index, int val)
+int bf_flip_bit(BitField *b_field, uint32_t index)
 {
     if (index >= b_field->num_bytes * 8)
         return -1;
-    val = (val == 1 ? 255 : 0);
-    b_field->bits[index] = val;
+    b_field->bits[index / 8] ^= 1 << (index % 8);
     return 0;
 }
 

@@ -19,7 +19,7 @@ uint32_t bf_locate_first(BitField *b_field, int val);
 
 uint32_t bf_num_one_bits(BitField *b_field);
 
-int bf_set_bit(BitField *b_field, uint32_t index, int val);
+int bf_flip_bit(BitField *b_field, uint32_t index);
 
 void bf_destroy(BitField *b_field);
 

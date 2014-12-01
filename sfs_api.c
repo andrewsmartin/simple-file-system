@@ -33,7 +33,6 @@ typedef struct
 #define FREE_LIST_START (FAT_START + FAT_BLOCKS)
 
 #define MAX_NAME_LEN 256
-#define ATTRS_LEN 0
 #define NUM_DIR_ENTRIES (DIR_BYTES / sizeof(DirEntry))
 #define MAX_OPEN 1000
 #define END_OF_FILE -1
@@ -115,7 +114,6 @@ void mksfs(int fresh)
     else {
         init_disk(DISK_FILE, BLOCK_SIZE, NUM_BLOCKS);
         load_all_caches();
-        print_super_block();
     }
 }
 
@@ -132,11 +130,13 @@ void sfs_ls()
 
 int sfs_fopen(char *name)
 {
-    int dir_index = create_file(name);
-    
+    int dir_index = search_directory(name);
     if (dir_index == -1) {
-        puts("Could not create file.");
-        return -1;
+        dir_index = create_file(name);
+        if (dir_index == -1) {
+            puts("Could not create file.");
+            return -1;
+        }
     }
 
     int fileID = create_file_desc(dir_index);
@@ -162,7 +162,9 @@ void sfs_fwrite(int fileID, char *buf, int length)
         return;
     }
 
-    int bytes_written = 0;
+    int fat_index = f->fat_root;
+
+    int bytes_left = length;
     byte *ptr = (byte*) buf;
     // If write pointer is in the middle of a block, fill up
     // the block first.
@@ -175,45 +177,47 @@ void sfs_fwrite(int fileID, char *buf, int length)
         write_blocks(f->write_ptr.block_address, 1, tmp);
         f->write_ptr.byte_address = 0;
         f->write_ptr.block_address = fat_table[f->write_ptr.block_address]->next;
-        length -= fill;
-        bytes_written += fill;
+        bytes_left -= fill;
     }
 
     // Try this differently. Allocate blocks one at a time as needed.
     int i;
-    for (i = 0; i < length / BLOCK_SIZE; i++, f->write_ptr.block_address = fat_table[f->write_ptr.block_address]->next, ptr += BLOCK_SIZE) {
+    for (i = 0; i < bytes_left / BLOCK_SIZE; i++, ptr += BLOCK_SIZE) {
         // Get start address of next block.
-        if (f->write_ptr.block_address == END_OF_FILE) {
-            // For now just use fat root
-            int res = alloc_block(f->fat_root);
-            if (res != 0) {
+        if (f->write_ptr.block_address == NO_DATA) {
+            if (alloc_block(fat_index) != 0) {
                 puts("Could not allocate block. Not writing further data.");
-                return ;
-            }
-            // Create new fat entry for the data block.
-            int fat_index = create_fat_entry(res);
-            if (fat_index < 0) {
-                puts("Could not create fat index. Aborting.");
                 return;
             }
-            fat_table[f->write_ptr.block_address]->next = fat_index;
+            f->write_ptr.block_address = fat_table[fat_index]->data_block;
         }
 
         write_blocks(f->write_ptr.block_address, 1, ptr);
+        bytes_left -= BLOCK_SIZE;
+
+        if (fat_table[fat_index]->next == END_OF_FILE && bytes_left > 0) {
+            fat_table[fat_index]->next = create_fat_entry(NO_DATA);
+            if (fat_index < 0) {
+                puts("Could not allocate new fat entry. Aborting write.");
+                return;
+            }
+        }
+        fat_index = fat_table[fat_index]->next;
+        f->write_ptr.block_address = fat_table[fat_index]->data_block;
     }
 
     // Now write the remaining bytes in the next block...
-    int rem = length % BLOCK_SIZE;
-    if (rem > 0) {
-        if (alloc_block(f->fat_root) != 0) {
+    if (bytes_left > 0) {
+        if (alloc_block(fat_index) != 0) {
             puts("Could not allocate block. Not writing further data.");
             return;
         }
 
+        f->write_ptr.block_address = fat_table[fat_index]->data_block; 
         byte tmp[BLOCK_SIZE];
-        memcpy(tmp, ptr, rem);
+        memcpy(tmp, ptr, bytes_left);
         write_blocks(f->write_ptr.block_address, 1, tmp);
-        f->write_ptr.byte_address = rem;
+        f->write_ptr.byte_address = bytes_left;
     }
     
     // Somehow update the file size (i.e. the directory entry)
@@ -228,7 +232,7 @@ void sfs_fread(int fileID, char *buf, int length)
     }
 
     byte *ptr = (byte*) buf;
-    int n;
+    int n, fat_index = f->fat_root;
 
     // First read rest of remaining block if byte address > 0;
     if (f->read_ptr.byte_address > 0) {
@@ -244,12 +248,11 @@ void sfs_fread(int fileID, char *buf, int length)
     for (n = 0; n < (length / BLOCK_SIZE); n++, ptr += BLOCK_SIZE) {
         read_blocks(f->read_ptr.block_address, 1, ptr);
         // Set the read pointer to the next block in the chain.
-        int next_block = fat_table[f->read_ptr.block_address]->next;
-        f->read_ptr.block_address = next_block;
-        if (next_block == END_OF_FILE) {
-            f->read_ptr.byte_address = 0;
+        fat_index = fat_table[fat_index]->next;
+        if (fat_index == END_OF_FILE) {
             return;
         }
+        f->read_ptr.block_address = fat_table[fat_index]->data_block;
     }
 
     // Now read only part of the next block...
@@ -312,22 +315,17 @@ int create_file(char *name)
     return dir_index;
 }
 
-int alloc_block(uint16_t fat_root)
+int alloc_block(uint16_t fat_index)
 {
-    uint16_t index = fat_root;
-
-    while (fat_table[index]->next != END_OF_FILE) {
-        index = fat_table[index]->next;
-    }
-
     // Find a free data block from the free list.
     int db = fbl_get_free_index(free_block_list);
+
     if (db < 0) {
         puts("There are no free blocks available.");
         return -1;
     }
 
-    fat_table[index]->data_block = db + DATA_BLOCK_OFFSET;
+    fat_table[fat_index]->data_block = db + DATA_BLOCK_OFFSET;
 
     flush_caches();
     return 0;
@@ -338,8 +336,8 @@ int alloc_block(uint16_t fat_root)
 void flush_caches()
 {
     super_block.num_free_blocks = fbl_get_num_free(free_block_list);
-    print_super_block();
-    print_fat();
+    //print_super_block();
+    //print_fat();
     write_all_caches();
 }
 
@@ -348,6 +346,7 @@ void load_all_caches()
     byte buf[DATA_BLOCK_OFFSET * BLOCK_SIZE], *ptr = buf;
     read_blocks(0, DATA_BLOCK_OFFSET, buf);
     memcpy(&super_block, ptr, BLOCK_SIZE);
+    print_super_block();
     ptr += BLOCK_SIZE;
     byte dir_buf[DIR_BYTES];
     memcpy(dir_buf, ptr, DIR_BYTES);
@@ -517,9 +516,9 @@ int create_file_desc(int dir_index)
 
     FileDescriptor *desc = malloc(sizeof(FileDescriptor));
     desc->fat_root = fat_index;
-    desc->read_ptr.block_address = END_OF_FILE;
+    desc->read_ptr.block_address = fat_table[fat_index]->data_block;
     desc->read_ptr.byte_address = 0;
-    desc->write_ptr.block_address = END_OF_FILE;
+    desc->write_ptr.block_address = fat_table[fat_index]->data_block;
     desc->write_ptr.byte_address = 0;
 
     fdesc_table[i] = desc;
