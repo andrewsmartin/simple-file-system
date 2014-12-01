@@ -1,11 +1,11 @@
 CFLAGS = -Wall
-OBJS = main.o sfs_api.o free_block_list.o bit_field.o disk_emu.o
+OBJS = sfs_ftest.o sfs_api.o free_block_list.o bit_field.o disk_emu.o
 
 sfs: ${OBJS}
 	gcc ${OBJS} -o sfs
 	
-main.o: sfs_api.h main.c
-	gcc -c main.c ${CFLAGS}
+sfs_ftest.o: sfs_api.h sfs_ftest.c
+	gcc -c sfs_ftest.c ${CFLAGS}
 	
 sfs_api.o: sfs_api.c sfs_api.h lib/disk_emu.h
 	gcc -c sfs_api.c ${CFLAGS}

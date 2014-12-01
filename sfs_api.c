@@ -139,7 +139,9 @@ int sfs_fopen(char *name)
         }
     }
 
+    // TODO Check fdesc table first.
     int fileID = create_file_desc(dir_index);
+    printf("File id: %d\n", fileID);
     
     return fileID;
 }
