@@ -7,7 +7,7 @@ void mksfs(int fresh);
 /* Lists files in the root directory. */
 void sfs_ls();
 
-/* Opens the given file. */
+/* Opens the given file and returns a file descriptor id. */
 int sfs_fopen(char *name);
 
 /* Closes the given file. */

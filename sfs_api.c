@@ -10,7 +10,7 @@
 
 #define MIN(a, b) (a < b ? a : b)
 
-#define DISK_FILE "test.disk"
+#define DISK_FILE ".disk"
 
 #define BLOCK_SIZE 512
 #define TOTAL_DATA_BLOCKS (BLOCK_SIZE * 8)  // Comes from space available in bit vector block
