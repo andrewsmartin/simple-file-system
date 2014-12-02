@@ -122,7 +122,7 @@ main(int argc, char **argv)
             printf("file: %d, chunksize: %d\n", i, chunksize);
             sfs_ls();
             sfs_fwrite(fds[i], buffer, chunksize);
-	    free(buffer);
+	        free(buffer);
         }
     }
 
@@ -236,7 +236,7 @@ main(int argc, char **argv)
 
             sfs_fread(fds[i], &ch, 1);
             if (ch != test_str[j]) {
-                fprintf(stderr, "ERROR: Read wrong byte from %s at %d (%d,%d)\n", 
+                fprintf(stderr, "ERROR: Read wrong byte from %s at %d (%c,%c)\n", 
                         names[i], j, ch, test_str[j]);
                 error_count++;
                 break;

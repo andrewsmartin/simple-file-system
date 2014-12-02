@@ -16,7 +16,7 @@ char *buf = "Some text for the file. ASDALSKFJHSDFJKLSDKFJSDFH SDF\
 int main(int argc, char *argv[])
 {
     int i = strtol(argv[1], NULL, 10);
-    
+    printf("%d\n", strlen(buf));
     if (i == 1) {
         mksfs(i);
         int fileID = sfs_fopen("test1.txt");
