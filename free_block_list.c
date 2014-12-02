@@ -1,51 +1,59 @@
-#include <stdlib.h>
-
 #include "free_block_list.h"
-#include "sfs_types.h"
 #include "bit_field.h"
+#include "sfs_types.h"
+#include "sfs_constants.h"
 
-struct _FreeBlockList
-{
-    BitField *bfield;
-};
+#include "lib/disk_emu.h"
 
-FreeBlockList *fbl_create(uint32_t num_blocks)
+#include <stdlib.h>
+#include <string.h>
+
+static BitField *bfield;
+
+void fbl_init()
 {
-    FreeBlockList *ret = malloc(sizeof(FreeBlockList));
-    ret->bfield = bf_create(num_blocks);
-    bf_set_all_bits(ret->bfield, 1);
+    bfield = bf_create(TOTAL_DATA_BLOCKS);
+    bf_set_all_bits(bfield, 1);
+}
+
+void fbl_load()
+{
+    byte buf[BLOCK_SIZE] = {0};
+    read_blocks(FREE_LIST_START, 1, buf);
+}
+
+void fbl_flush()
+{
+    write_blocks(FREE_LIST_START, 1, bf_get_raw_bytes(bfield));
+}
+
+int fbl_get_free_index()
+{
+    uint32_t ret = bf_locate_first(bfield, 1);
+    bf_flip_bit(bfield, ret);
     return ret;
 }
 
-int fbl_get_free_index(FreeBlockList *fblist)
-{
-    uint32_t ret = bf_locate_first(fblist->bfield, 1);
-    bf_flip_bit(fblist->bfield, ret);
-    return ret;
+void fbl_set_free_index(uint32_t index) {
+    bf_flip_bit(bfield, index);
 }
 
-void fbl_set_free_index(FreeBlockList *fblist, uint32_t index) {
-    bf_flip_bit(fblist->bfield, index);
+uint32_t fbl_get_num_free()
+{
+    return bf_num_one_bits(bfield);
 }
 
-uint32_t fbl_get_num_free(FreeBlockList *fblist)
+byte *fbl_get_raw()
 {
-    return bf_num_one_bits(fblist->bfield);
+    return bf_get_raw_bytes(bfield);
 }
 
-byte *fbl_get_raw(FreeBlockList *fblist)
+void fbl_set_raw(byte *bytes)
 {
-    return bf_get_raw_bytes(fblist->bfield);
+    bf_set_raw_bytes(bfield, bytes);
 }
 
-void fbl_set_raw(FreeBlockList *fblist, byte *bytes)
+void fbl_destroy()
 {
-    bf_set_raw_bytes(fblist->bfield, bytes);
-}
-
-void fbl_destroy(FreeBlockList *fblist)
-{
-    bf_destroy(fblist->bfield);
-    free(fblist);
-    fblist = NULL;
+    bf_destroy(bfield);
 }

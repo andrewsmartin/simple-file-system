@@ -8,18 +8,22 @@
 
 typedef struct _FreeBlockList FreeBlockList;
 
-FreeBlockList *fbl_create(uint32_t num_blocks);
+void fbl_init();
 
-int fbl_get_free_index(FreeBlockList *fblist);
+void fbl_load();
 
-void fbl_set_free_index(FreeBlockList *fblist, uint32_t index);
+void fbl_flush();
 
-uint32_t fbl_get_num_free(FreeBlockList *fblist);
+int fbl_get_free_index();
 
-byte *fbl_get_raw(FreeBlockList *fblist);
+void fbl_set_free_index(uint32_t index);
 
-void fbl_set_raw(FreeBlockList *fblist, byte *bytes);
+uint32_t fbl_get_num_free();
 
-void fbl_destroy(FreeBlockList *fblist);
+byte *fbl_get_raw();
+
+void fbl_set_raw(byte *bytes);
+
+void fbl_destroy();
 
 #endif
