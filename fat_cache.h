@@ -34,15 +34,5 @@ void fat_set_next_index(int fat_index, int next);
 int fat_alloc_block(int fat_index);
 
 void fat_clean_entry(int fat_root);
-// {
-//     // int fat_index = fat_root;
-//     // while (fat_index != END_OF_FILE) {
-//     //     FatEntry *f = fat_table[fat_index];
-//     //     fbl_set_free_index(free_block_list, f->data_block);
-//     //     fat_table[fat_index] = NULL;
-//     //     fat_index = f->next;
-//     //     free(f);
-//     // }
-// }
 
 #endif
